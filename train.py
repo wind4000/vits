@@ -108,7 +108,8 @@ def run(rank, n_gpus, hps):
     _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g)
     _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d)
     global_step = (epoch_str - 1) * len(train_loader)
-  except:
+  except Exception as e:
+    print("未能加载上次的checkpoint, 错误原因: ", e)
     epoch_str = 1
     global_step = 0
 
