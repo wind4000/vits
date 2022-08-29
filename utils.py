@@ -154,9 +154,11 @@ def get_hparams(init=True):
                       help='JSON file for configuration')
   parser.add_argument('-m', '--model', type=str, required=True,
                       help='Model name')
+  parser.add_argument('-o', '--outdir', type=str, default="/content/drive/MyDrive",
+                      help='Output directory of models & tensorboard logs')
   
   args = parser.parse_args()
-  model_dir = os.path.join("../drive/MyDrive", args.model)
+  model_dir = os.path.join(args.outdir, args.model)
 
   if not os.path.exists(model_dir):
     os.makedirs(model_dir)
