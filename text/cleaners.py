@@ -429,8 +429,7 @@ def japanese_cleaners(text):
 
 
 def japanese_cleaners2(text):
-  raise Exception("该笔记本已取消对于该cleaners的支持。你可以向其他相关领域人士继续寻求帮助。")
-
+  return japanese_cleaners(text).replace('ts','ʦ').replace('...','…')
 
 def korean_cleaners(text):
   '''Pipeline for Korean text'''
