@@ -35,9 +35,9 @@ def load_checkpoint(checkpoint_path, model, optimizer=None):
       logger.info("%s is not in the checkpoint" % k)
       new_state_dict[k] = v
   if hasattr(model, 'module'):
-    model.module.load_state_dict(new_state_dict)
+    model.module.load_state_dict(new_state_dict, strict=False)
   else:
-    model.load_state_dict(new_state_dict)
+    model.load_state_dict(new_state_dict, strict=False)
   logger.info("Loaded checkpoint '{}' (iteration {})" .format(
     checkpoint_path, iteration))
   return model, optimizer, learning_rate, iteration
