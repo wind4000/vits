@@ -109,9 +109,18 @@ def run(rank, n_gpus, hps):
     _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g)
     _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d)
     global_step = (epoch_str - 1) * len(train_loader)
+    logging.debug("Loaded as emo-vits models.")
   except:
-    epoch_str = 1
-    global_step = 0
+    logging.debug("Failed to load model as emo-vits model. Try to load it as vits models...")
+    try:
+      _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g, is_old=True)
+      _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d, is_old=True)
+      global_step = (epoch_str - 1) * len(train_loader)
+      logging.debug("Loaded as vits models.")
+    except Exception as e:
+      print("Failed to load last checkpoint, reason: ", e)
+      epoch_str = 1
+      global_step = 0
 
   scheduler_g = torch.optim.lr_scheduler.ExponentialLR(optim_g, gamma=hps.train.lr_decay, last_epoch=epoch_str-2)
   scheduler_d = torch.optim.lr_scheduler.ExponentialLR(optim_d, gamma=hps.train.lr_decay, last_epoch=epoch_str-2)
