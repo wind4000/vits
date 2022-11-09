@@ -103,13 +103,21 @@ def run(rank, n_gpus, hps):
       eps=hps.train.eps)
   net_g = DDP(net_g, device_ids=[rank])
   net_d = DDP(net_d, device_ids=[rank])
+  ckptG = hps.ckptG
+  ckptD = hps.ckptD
 
   try:
-    _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g)
-    _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d)
+    if ckptG is not None or ckptD is not None:
+      _, _, _, epoch_str = utils.load_checkpoint(ckptG, net_g, optim_g, is_old=True)
+      _, _, _, epoch_str = utils.load_checkpoint(ckptD, net_d, optim_d, is_old=True)
+      logging.debug("Loaded as vits models.")
+    else:
+      _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g)
+      _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d)
+      logging.debug("Loaded as emo-vits models.")
     global_step = (epoch_str - 1) * len(train_loader)
   except Exception as e:
-    print("未能加载上次的checkpoint, 错误原因: ", e)
+    logging.error("Failed to load last checkpoint, reason: ", e)
     epoch_str = 1
     global_step = 0
 
