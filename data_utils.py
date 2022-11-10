@@ -199,7 +199,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.audiopaths_sid_text = audiopaths_sid_text_new
         self.lengths = lengths
 
-    def get_audio_text_speaker_pair(self, audiopath_sid_text, emo):
+    def get_audio_text_speaker_pair(self, audiopath_sid_text):
         # separate filename, speaker_id and text
         audiopath, sid, text = audiopath_sid_text[0], audiopath_sid_text[1], audiopath_sid_text[2]
         text = self.get_text(text)

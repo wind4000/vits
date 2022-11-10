@@ -103,24 +103,34 @@ def run(rank, n_gpus, hps):
       eps=hps.train.eps)
   net_g = DDP(net_g, device_ids=[rank])
   net_d = DDP(net_d, device_ids=[rank])
-  ckptG = hps.ckptG
-  ckptD = hps.ckptD
 
   try:
-    if ckptG is not None or ckptD is not None:
-      _, _, _, epoch_str = utils.load_checkpoint(ckptG, net_g, optim_g, is_old=True)
-      _, _, _, epoch_str = utils.load_checkpoint(ckptD, net_d, optim_d, is_old=True)
-      logging.debug("Loaded as vits models.")
-    else:
-      _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g)
-      _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d)
-      logging.debug("Loaded as emo-vits models.")
-    global_step = (epoch_str - 1) * len(train_loader)
-  except Exception as e:
-    logging.error("Failed to load last checkpoint, reason: ", e)
-    epoch_str = 1
-    global_step = 0
+    emo_yes = hps.convert2emo
+  except:
+    emo_yes = None
 
+  try:
+    _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g)
+    _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d)
+    global_step = (epoch_str - 1) * len(train_loader)
+    logging.debug("Checkpoint loaded with first try.")
+  except Exception as e:
+    logging.debug(f'Failed to load last checkpoint, reason: {e}')
+    if emo_yes is None:
+      epoch_str = 1
+      global_step = 0
+    else:
+      logging.debug("Failed to load models. Try to convert models to emo-vits models. Backup suggested.")
+      try:
+        _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G.pth"), net_g, optim_g, is_old=True)
+        _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D.pth"), net_d, optim_d, is_old=True)
+        global_step = (epoch_str - 1) * len(train_loader)
+        logging.debug("Checkpoint loaded with second try.")
+      except Exception as e:
+        logging.debug(f'Failed to load last checkpoint, reason: {e}')
+        epoch_str = 1
+        global_step = 0
+  
   scheduler_g = torch.optim.lr_scheduler.ExponentialLR(optim_g, gamma=hps.train.lr_decay, last_epoch=epoch_str-2)
   scheduler_d = torch.optim.lr_scheduler.ExponentialLR(optim_d, gamma=hps.train.lr_decay, last_epoch=epoch_str-2)
 
@@ -261,7 +271,7 @@ def evaluate(hps, generator, eval_loader, writer_eval):
         spec_lengths = spec_lengths[:1]
         y = y[:1]
         y_lengths = y_lengths[:1]
-        emo = emo[0]
+        emo = emo[:1]
         break
       y_hat, attn, mask, *_ = generator.module.infer(x, x_lengths, emo=emo, max_len=1000)
       y_hat_lengths = mask.sum([1,2]).long() * hps.data.hop_length
