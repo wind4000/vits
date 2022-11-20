@@ -8,6 +8,7 @@ import subprocess
 import numpy as np
 from scipy.io.wavfile import read
 import torch
+import wandb
 
 MATPLOTLIB_FLAG = False
 
@@ -149,13 +150,17 @@ def get_hparams(init=True):
                       help='Model name')
   parser.add_argument('-o', '--outdir', type=str, default="/content/drive/MyDrive",
                       help='Output directory of models & tensorboard logs')
+  parser.add_argument('-p', '--project', type=str, default="vits_project",
+                      help='Wandb project name')
+  parser.add_argument('-k', '--key', type=str, default="",
+                      help='Wandb api key')
   
   args = parser.parse_args()
+
   model_dir = os.path.join(args.outdir, args.model)
 
   if not os.path.exists(model_dir):
     os.makedirs(model_dir)
-
   config_path = args.config
   config_save_path = os.path.join(model_dir, "config.json")
   if init:
@@ -170,7 +175,7 @@ def get_hparams(init=True):
   
   hparams = HParams(**config)
   hparams.model_dir = model_dir
-  return hparams
+  return hparams, config, args.key, args.project
 
 
 def get_hparams_from_dir(model_dir):

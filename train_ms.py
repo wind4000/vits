@@ -12,6 +12,7 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.cuda.amp import autocast, GradScaler
+import wandb
 
 import librosa
 import logging
@@ -51,13 +52,19 @@ def main():
   os.environ['MASTER_ADDR'] = 'localhost'
   os.environ['MASTER_PORT'] = '80000'
 
-  hps = utils.get_hparams()
-  mp.spawn(run, nprocs=n_gpus, args=(n_gpus, hps,))
+  hps, config, key, project = utils.get_hparams()
+
+  mp.spawn(run, nprocs=n_gpus, args=(n_gpus, hps, config, key, project,))
 
 
-def run(rank, n_gpus, hps):
+def run(rank, n_gpus, hps, config, key, project):
   global global_step
   if rank == 0:
+    # wandb stuff
+    wandb.config = config
+    wandb.login(key=key)
+    wandb.init(project=project)
+
     logger = utils.get_logger(hps.model_dir)
     logger.info(hps)
     utils.check_git_hash(hps.model_dir)
@@ -221,6 +228,10 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
             "all/mel": utils.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
             "all/attn": utils.plot_alignment_to_numpy(attn[0,0].data.cpu().numpy())
         }
+        wandb_dict = scalar_dict
+        wandb_dict.update(image_dict)
+        wandb_dict.update({"epoch": epoch})
+        wandb.log(wandb_dict)
         utils.summarize(
           writer=writer,
           global_step=global_step, 
